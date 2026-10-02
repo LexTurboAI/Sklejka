@@ -15,13 +15,23 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        with:
+          # The legacy 'tools' package has been removed from the SDK repository.
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew
       - run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
+      - name: Prepare debug APK artifact
+        run: |
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          mkdir -p artifacts
+          cp app/build/outputs/apk/debug/app-debug.apk artifacts/sklejka-debug.apk
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
         with:
           name: sklejka-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: artifacts/sklejka-debug.apk
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
