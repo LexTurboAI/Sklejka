@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class SklejkaModel(app: Application, private val state: SavedStateHandle) : AndroidViewModel(app) {
     val photos = mutableStateListOf<Photo>()
     var direction by mutableStateOf(Direction.valueOf(state["direction"] ?: "VERTICAL")); private set
+    var columns by mutableIntStateOf((state.get<Int>("columns") ?: 3).coerceIn(2, 4)); private set
     var format by mutableStateOf(Format.valueOf(state["format"] ?: "PNG")); private set
     var background by mutableStateOf(Background.valueOf(state["background"] ?: "WHITE")); private set
     var gap by mutableIntStateOf(state["gap"] ?: 0); private set
@@ -30,6 +31,7 @@ class SklejkaModel(app: Application, private val state: SavedStateHandle) : Andr
         if (!restored.isNullOrEmpty()) add(restored.map(Uri::parse))
     }
     fun direction(value: Direction) { direction = value; state["direction"] = value.name }
+    fun columns(value: Int) { columns = value.coerceIn(2, 4); state["columns"] = columns }
     fun format(value: Format) {
         format = value; state["format"] = value.name
         if (value == Format.JPG && background == Background.TRANSPARENT) background(Background.WHITE)
@@ -66,7 +68,7 @@ class SklejkaModel(app: Application, private val state: SavedStateHandle) : Andr
         val from = photos.indexOfFirst { it.id == id }
         if (from >= 0 && to in photos.indices && from != to) { photos.add(to, photos.removeAt(from)); persist() }
     }
-    fun options() = ExportOptions(direction, false, format, background, gap, quality)
+    fun options() = ExportOptions(direction, false, format, background, gap, quality, columns)
     fun export(target: Uri? = null) {
         if (busy || photos.isEmpty()) return
         val selected = photos.toList(); val settings = options()
@@ -79,11 +81,11 @@ class SklejkaModel(app: Application, private val state: SavedStateHandle) : Andr
                     }
                 }
             } catch (_: OutOfMemoryError) {
-                val s = runCatching { Layout.plan(selected.map { it.size }, settings.direction, settings.reverse, settings.gap).size }.getOrNull()
+                val s = runCatching { Layout.plan(selected.map { it.size }, settings.direction, settings.reverse, settings.gap, settings.columns).size }.getOrNull()
                 error = "Za mało pamięci dla wyniku ${s?.width} × ${s?.height} px. Wybierz PNG lub usuń część zdjęć. Nie zmniejszono zdjęć."
             } catch (e: Exception) {
                 error = if (e is InterruptedException) "Anulowano zapis." else {
-                    val size = runCatching { Layout.plan(selected.map { it.size }, settings.direction, settings.reverse, settings.gap).size }.getOrNull()
+                    val size = runCatching { Layout.plan(selected.map { it.size }, settings.direction, settings.reverse, settings.gap, settings.columns).size }.getOrNull()
                     val reason = e.message ?: "Nie udało się zapisać obrazu. Sprawdź dostępne miejsce i dostęp do zdjęć."
                     if (size != null) "$reason\n\nPlanowany wynik: ${size.width} × ${size.height} px. Nie zmniejszono zdjęć." else reason
                 }

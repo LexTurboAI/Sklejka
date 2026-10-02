@@ -10,7 +10,9 @@ Kotlin, Jetpack Compose, Material 3. Jeden moduł `:app`. Android 8.0+ (API 26).
 2. Ustaw kolejność: przytrzymaj uchwyt **≡** i przeciągnij. Strzałki ↑ / ↓
    pozwalają zmienić kolejność bez gestu. Przycisk **Usuń** usuwa pojedynczy wpis.
    Kolejne dodanie dopisuje obrazy do listy; **WYCZYŚĆ** usuwa całą listę.
-3. Wybierz **PION** lub **POZIOM**. **ODWRÓĆ KOLEJNOŚĆ** odwraca widoczną listę;
+3. Wybierz **PION**, **POZIOM** lub **SIATKA**. Dla siatki wybierz **2 / 3 / 4**
+   kolumny (domyślnie 3). Wymiary wyniku aktualizują się po zmianie ustawień.
+   **ODWRÓĆ KOLEJNOŚĆ** odwraca widoczną listę;
    eksport zawsze zachowuje kolejność wyświetloną na ekranie.
 4. Wybierz PNG / JPG i tło: białe, czarne lub przezroczyste (PNG).
    Domyślnie: pion, PNG, białe tło i 0 px odstępu.
@@ -26,8 +28,16 @@ lokalizację. Aplikacja nie potrzebuje szerokiego dostępu do magazynu telefonu.
 
 - Pion: szerokość = największa szerokość; wysokość = suma wysokości + odstępy.
 - Poziom: szerokość = suma szerokości + odstępy; wysokość = największa wysokość.
-- Mniejsze zdjęcie jest centrowane. Przy nieparzystej różnicy dodatkowy piksel
+- W pionie i poziomie mniejsze zdjęcie jest centrowane. Przy nieparzystej różnicy dodatkowy piksel
   tła przypada na prawą / dolną stronę.
+- Siatka: kolejne zdjęcia z listy trafiają od lewej do prawej, potem do następnego
+  wiersza. Każda kolumna ma szerokość najszerszego zdjęcia z całej listy.
+  Zdjęcia zachowują natywne wymiary i są wyrównane do lewego górnego rogu komórki;
+  nie są powiększane ani pomniejszane. Każdy wiersz ma wysokość najwyższego
+  zdjęcia w tym wierszu. Odstęp obowiązuje między kolumnami i wierszami.
+  Niepełny ostatni wiersz zaczyna się z lewej; puste komórki i przestrzeń wokół
+  mniejszych zdjęć zachowują wybrane tło. Wybrane kolumny pozostają zarezerwowane,
+  również gdy zdjęć jest mniej niż kolumn.
 - Wymiary są liczone po zastosowaniu orientacji EXIF.
 - Brak przycinania, resamplingu, dopasowywania panoram i zmniejszania eksportu.
 - Wszystkie osiem orientacji EXIF to dokładne przestawienie pikseli.
@@ -73,18 +83,18 @@ Pobranie narzędzi i zależności przy pierwszym buildzie wymaga połączenia;
 zainstalowana aplikacja działa offline.
 
 ```bash
-./gradlew testDebugUnitTest lintDebug assembleDebug
+./gradlew build
 ```
 
 Windows:
 
 ```powershell
-.\gradlew.bat testDebugUnitTest lintDebug assembleDebug
+.\gradlew.bat build
 ```
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 Workflow GitHub Actions wykonuje te same zadania i udostępnia APK jako artefakt
-`sklejka-debug` oraz raporty testów.
+`sklejka-debug` (ZIP zawierający `sklejka-debug.apk`) oraz raporty testów i lint.
 
 ## Testy
 
@@ -97,11 +107,17 @@ PNG z alfą, orientacje, rzeczywisty JPEG z EXIF, pełny eksport PNG/JPG,
 brak INTERNET w manifeście, filtry udostępniania oraz rzeczywiste uruchomienie
 ekranu przez ACTION_SEND / ACTION_SEND_MULTIPLE z zachowaniem kolejności i powtórzeń.
 
-Zweryfikowano 2 października 2026: Gradle Wrapper wykonał
-`testDebugUnitTest lintDebug assembleDebug` — **BUILD SUCCESSFUL, 25/25 testów**.
-Test dużego eksportu utworzył rzeczywisty PNG 1440 × 20000 z czterech wejść
-1440 × 5000, bez pełnej bitmapy wyniku. Lint: 0 błędów, 2 ostrzeżenia
-(DataExtractionRules, UseKtx). Podpis debug APK i wyrównanie ZIP 16 KiB są poprawne.
+Testy siatki obejmują 4 zdjęcia / 2 kolumny, 6 zdjęć / 3 kolumny, niepełny
+ostatni wiersz, odstępy w obu osiach, różne proporcje, zachowanie wszystkich
+pikseli, kolejność i odwrócenie, przezroczystość, limity buforów oraz przepełnienie
+wymiarów. Pełne eksporty sprawdzają PNG z alfą, JPG z jakością 80 / 91 / 100
+(porównanie z niezależnie przygotowanym płótnem), EXIF i cztery screenshoty
+1440 × 5000 w siatce 2 × 2 z odstępem 4 px → PNG 2884 × 10004.
+Test modelu sprawdza zmianę i przywrócenie liczby kolumn oraz obecne operacje
+zmiany kolejności, odwrócenia, usuwania i czyszczenia.
+
+Aktualne wyniki builda, wszystkich testów i lint są dostępne w GitHub Actions;
+artefakt `test-reports` zawiera raporty HTML.
 
 Przed użyciem na konkretnym telefonie sprawdź operacyjnie: import z Galerii,
 przeciąganie, eksport i otwieranie wyniku. Testy automatyczne nie zastępują

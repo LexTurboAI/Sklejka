@@ -168,6 +168,16 @@ private fun SklejkaScreen(model: SklejkaModel) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilterChip(selected = model.direction == Direction.VERTICAL, onClick = { model.direction(Direction.VERTICAL) }, label = { Text("PION") }, enabled = !model.busy)
                 FilterChip(selected = model.direction == Direction.HORIZONTAL, onClick = { model.direction(Direction.HORIZONTAL) }, label = { Text("POZIOM") }, enabled = !model.busy)
+                FilterChip(selected = model.direction == Direction.GRID, onClick = { model.direction(Direction.GRID) }, label = { Text("SIATKA") }, enabled = !model.busy)
+            }
+            if (model.direction == Direction.GRID) {
+                Text("LICZBA KOLUMN", fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    (2..4).forEach { columns ->
+                        FilterChip(selected = model.columns == columns, onClick = { model.columns(columns) },
+                            label = { Text(columns.toString()) }, enabled = !model.busy)
+                    }
+                }
             }
             OutlinedButton(onClick = model::reverse, enabled = !model.busy && model.photos.size > 1) { Text("ODWRÓĆ KOLEJNOŚĆ") }
             Spacer(Modifier.height(16.dp))
@@ -190,7 +200,7 @@ private fun SklejkaScreen(model: SklejkaModel) {
                 Slider(value = model.quality.toFloat(), onValueChange = { model.quality(it.toInt()) }, valueRange = 80f..100f, steps = 19, enabled = !model.busy)
             }
             if (model.photos.isNotEmpty()) {
-                val size = runCatching { Layout.plan(model.photos.map { it.size }, model.direction, gap = model.gap).size }.getOrNull()
+                val size = runCatching { Layout.plan(model.photos.map { it.size }, model.direction, gap = model.gap, columns = model.columns).size }.getOrNull()
                 if (size != null) Text("Wynik: ${size.width} × ${size.height} px", fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(12.dp))

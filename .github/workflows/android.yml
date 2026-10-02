@@ -20,7 +20,7 @@ jobs:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew
-      - run: ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon
+      - run: ./gradlew build --no-daemon
       - name: Prepare debug APK artifact
         run: |
           test -s app/build/outputs/apk/debug/app-debug.apk
@@ -38,4 +38,4 @@ jobs:
           name: test-reports
           path: |
             app/build/reports/tests/
-            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results*.html

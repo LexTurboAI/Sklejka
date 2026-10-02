@@ -6,7 +6,7 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.CRC32
 import java.util.zip.Deflater
 
-enum class Direction { VERTICAL, HORIZONTAL }
+enum class Direction { VERTICAL, HORIZONTAL, GRID }
 enum class Background(val argb: Int) { WHITE(-1), BLACK(0xff000000.toInt()), TRANSPARENT(0) }
 enum class Format(val mime: String, val extension: String) { PNG("image/png", "png"), JPG("image/jpeg", "jpg") }
 data class Size(val width: Int, val height: Int) {
@@ -17,10 +17,12 @@ data class Placement(val sourceIndex: Int, val box: Box)
 data class Plan(val size: Size, val placements: List<Placement>)
 
 object Layout {
-    fun plan(sizes: List<Size>, direction: Direction, reverse: Boolean = false, gap: Int = 0): Plan {
+    fun plan(sizes: List<Size>, direction: Direction, reverse: Boolean = false, gap: Int = 0,
+             columns: Int = 3): Plan {
         require(sizes.isNotEmpty()) { "Dodaj co najmniej jedno zdjęcie." }
         require(gap in 0..50)
         val indices = if (reverse) sizes.indices.reversed().toList() else sizes.indices.toList()
+        if (direction == Direction.GRID) return grid(sizes, indices, columns, gap)
         val width = if (direction == Direction.VERTICAL) sizes.maxOf { it.width }.toLong()
             else sizes.sumOf { it.width.toLong() } + gap.toLong() * (sizes.size - 1)
         val height = if (direction == Direction.HORIZONTAL) sizes.maxOf { it.height }.toLong()
@@ -36,6 +38,31 @@ object Layout {
             else Box(cursor.toInt(), ((height - s.height) / 2).toInt(), s.width, s.height)
             cursor += (if (direction == Direction.VERTICAL) s.height else s.width).toLong() + gap
             Placement(i, box)
+        }
+        return Plan(Size(width.toInt(), height.toInt()), placements)
+    }
+
+    /** Fixed-width columns, native pixels, top-left alignment and row-major list order. */
+    private fun grid(sizes: List<Size>, indices: List<Int>, columns: Int, gap: Int): Plan {
+        require(columns in 2..4) { "Wybierz 2, 3 lub 4 kolumny." }
+        val columnWidth = sizes.maxOf { it.width }.toLong()
+        val rows = indices.chunked(columns)
+        val rowHeights = rows.map { row -> row.maxOf { sizes[it].height }.toLong() }
+        // Reserve all selected columns, including background in an incomplete last row.
+        val width = columnWidth * columns + gap.toLong() * (columns - 1)
+        val height = rowHeights.sum() + gap.toLong() * (rows.size - 1)
+        require(width <= Int.MAX_VALUE && height <= Int.MAX_VALUE) {
+            "Wynik ${width} × ${height} px przekracza obsługiwany zakres wymiarów."
+        }
+        val placements = ArrayList<Placement>(sizes.size)
+        var y = 0L
+        rows.forEachIndexed { rowIndex, row ->
+            row.forEachIndexed { column, sourceIndex ->
+                val size = sizes[sourceIndex]
+                placements.add(Placement(sourceIndex, Box((column * (columnWidth + gap)).toInt(),
+                    y.toInt(), size.width, size.height)))
+            }
+            y += rowHeights[rowIndex] + gap
         }
         return Plan(Size(width.toInt(), height.toInt()), placements)
     }

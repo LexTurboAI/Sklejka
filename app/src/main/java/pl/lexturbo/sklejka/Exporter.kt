@@ -15,14 +15,14 @@ import java.util.Date
 import java.util.Locale
 
 data class ExportOptions(val direction: Direction, val reverse: Boolean, val format: Format,
-                         val background: Background, val gap: Int, val quality: Int)
+                         val background: Background, val gap: Int, val quality: Int, val columns: Int = 3)
 data class SavedImage(val uri: Uri, val name: String, val mime: String, val size: Size, val bytes: Long, val location: String)
 
 object Exporter {
     fun name(format: Format) = "Sklejka_${SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.ROOT).format(Date())}.${format.extension}"
     fun export(context: Context, photos: List<Photo>, options: ExportOptions, target: Uri? = null,
                cancelled: () -> Boolean = { false }, progress: (Float) -> Unit = {}): SavedImage {
-        val plan = Layout.plan(photos.map { it.size }, options.direction, options.reverse, options.gap)
+        val plan = Layout.plan(photos.map { it.size }, options.direction, options.reverse, options.gap, options.columns)
         require(options.format == Format.PNG || options.background != Background.TRANSPARENT) { "JPG nie obsługuje przezroczystości. Wybierz białe lub czarne tło." }
         if (options.format == Format.PNG) Limits.png(plan.size)
         else {
